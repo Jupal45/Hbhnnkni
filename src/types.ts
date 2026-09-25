@@ -25,10 +25,23 @@ export interface Question {
   diagramData?: any;
 }
 
+export interface CustomExam {
+  id: string;
+  title: string;
+  subject: string;
+  description: string;
+  authorName: string;
+  sponsoringSchool: string;
+  durationMinutes: number;
+  createdAt: number;
+  questions: Question[];
+}
+
 export interface ExamAttempt {
   id: string;
   timestamp: number;
   examType: ExamType;
+  customExamTitle?: string;
   studentOrganization?: string;
   studentName: string;
   answers: Record<string, AnswerOption>;

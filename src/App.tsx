@@ -18,7 +18,9 @@ import { HistoryModal } from './components/HistoryModal';
 import { WelcomeGate } from './components/WelcomeGate';
 import { StopSignBanner } from './components/StopSignBanner';
 import { ResetWarningModal } from './components/ResetWarningModal';
-import { EXAM_DEFINITIONS } from './data/examConfig';
+import { LandingHero } from './components/LandingHero';
+import { EXAM_DEFINITIONS, DEFAULT_SPONSORING_ORG } from './data/examConfig';
+import { SectionInfo } from './data/allQuestions';
 
 const STORAGE_ANSWERS_KEY = 'exam_current_answers';
 const STORAGE_ATTEMPTS_KEY = 'exam_attempts_history';
@@ -28,32 +30,54 @@ const STORAGE_STATUS_KEY = 'exam_test_status';
 const STORAGE_PART_KEY = 'exam_current_part';
 const STORAGE_TIMER_KEY = 'exam_part_timer';
 const STORAGE_EXAM_TYPE_KEY = 'exam_selected_type';
+const STORAGE_THEME_KEY = 'spa_theme';
 
 export default function App() {
+  // Dark mode vs Bright/Light mode state
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    const saved = localStorage.getItem(STORAGE_THEME_KEY);
+    return saved === 'dark';
+  });
+
+  // Apply or remove .dark class on html
+  useEffect(() => {
+    localStorage.setItem(STORAGE_THEME_KEY, darkMode ? 'dark' : 'light');
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
+
+  const toggleTheme = () => {
+    setDarkMode((prev) => !prev);
+  };
+
   // Selected Exam Type: 'piense2' | 'paa'
   const [selectedExam, setSelectedExam] = useState<ExamType>(() => {
     const saved = localStorage.getItem(STORAGE_EXAM_TYPE_KEY);
     return saved === 'paa' || saved === 'piense2' ? saved : 'piense2';
   });
 
-  // Student organization / institution (Instituto Mater, PrepaTec, Tec, etc.)
+  // Student organization: DEFAULT IS ALWAYS 'Ninguna'
   const [studentOrganization, setStudentOrganization] = useState<string>(() => {
-    return localStorage.getItem(STORAGE_ORG_KEY) || 'Instituto Mater';
+    const saved = localStorage.getItem(STORAGE_ORG_KEY);
+    return saved && saved !== 'Instituto Mater' ? saved : DEFAULT_SPONSORING_ORG;
   });
 
   // Active exam definition
   const examDef = EXAM_DEFINITIONS[selectedExam];
-  const allActiveQuestions = examDef.questions;
-  const activeSections = examDef.sections;
-  const activePartDurations = examDef.partDurations;
+  const allActiveQuestions: Question[] = examDef.questions;
+  const activeSections: SectionInfo[] = examDef.sections;
+  const activePartDurations: Record<number, number> = examDef.partDurations;
 
-  // Test status: 'gate' (menu principal), 'exam' (en curso), 'submitted', 'results'
-  const [testStatus, setTestStatus] = useState<'gate' | 'exam' | 'submitted' | 'results'>(() => {
+  // Test status: 'landing' (inicio CLARIFY), 'spa' (Sección SPA), 'exam', 'submitted', 'results'
+  const [testStatus, setTestStatus] = useState<'landing' | 'spa' | 'exam' | 'submitted' | 'results'>(() => {
     const saved = localStorage.getItem(STORAGE_STATUS_KEY);
     if (saved === 'exam' || saved === 'submitted' || saved === 'results') {
       return saved as any;
     }
-    return 'gate';
+    return 'landing';
   });
 
   // Student name
@@ -75,7 +99,7 @@ export default function App() {
       const parsed = parseInt(saved, 10);
       if (!isNaN(parsed) && parsed >= 0) return parsed;
     }
-    return activePartDurations[1];
+    return activePartDurations[1] || 1800;
   });
 
   // Is current part locked? (when time has expired)
@@ -91,7 +115,7 @@ export default function App() {
     }
   });
 
-  // History of attempts (infinite attempts)
+  // Exam attempts history
   const [attempts, setAttempts] = useState<ExamAttempt[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_ATTEMPTS_KEY);
@@ -101,34 +125,25 @@ export default function App() {
     }
   });
 
-  const [latestAttempt, setLatestAttempt] = useState<ExamAttempt | null>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_ATTEMPTS_KEY);
-      const parsed: ExamAttempt[] = saved ? JSON.parse(saved) : [];
-      return parsed.length > 0 ? parsed[0] : null;
-    } catch {
-      return null;
-    }
-  });
+  // Latest finished attempt
+  const [latestAttempt, setLatestAttempt] = useState<ExamAttempt | null>(null);
 
+  // Review mode attempt
   const [reviewAttempt, setReviewAttempt] = useState<ExamAttempt | null>(null);
 
-  // Modals
+  // Modals state
   const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
   const [isResetWarningOpen, setIsResetWarningOpen] = useState<boolean>(false);
 
-  // Timer interval ref
-  const timerRef = useRef<any>(null);
+  // Exam start timestamp for total elapsed time calculation
+  const examStartTimestampRef = useRef<number>(Date.now());
 
-  // Sync state to LocalStorage
+  // Save selected exam type
   useEffect(() => {
     localStorage.setItem(STORAGE_EXAM_TYPE_KEY, selectedExam);
   }, [selectedExam]);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_ORG_KEY, studentOrganization);
-  }, [studentOrganization]);
-
+  // Sync state to localStorage
   useEffect(() => {
     localStorage.setItem(STORAGE_ANSWERS_KEY, JSON.stringify(answers));
   }, [answers]);
@@ -142,6 +157,10 @@ export default function App() {
   }, [studentName]);
 
   useEffect(() => {
+    localStorage.setItem(STORAGE_ORG_KEY, studentOrganization);
+  }, [studentOrganization]);
+
+  useEffect(() => {
     localStorage.setItem(STORAGE_STATUS_KEY, testStatus);
   }, [testStatus]);
 
@@ -153,174 +172,172 @@ export default function App() {
     localStorage.setItem(STORAGE_TIMER_KEY, timeRemaining.toString());
   }, [timeRemaining]);
 
-  // Section Timer Countdown Hook: ONLY ticks when testStatus === 'exam' and timeRemaining > 0
+  // Countdown timer effect
   useEffect(() => {
-    if (testStatus === 'exam' && timeRemaining > 0) {
-      timerRef.current = setInterval(() => {
-        setTimeRemaining((prev) => {
-          if (prev <= 1) {
-            clearInterval(timerRef.current);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else {
-      clearInterval(timerRef.current);
-    }
-    return () => clearInterval(timerRef.current);
+    if (testStatus !== 'exam') return;
+
+    if (timeRemaining <= 0) return;
+
+    const timer = setInterval(() => {
+      setTimeRemaining((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
   }, [testStatus, timeRemaining]);
 
-  // Questions of the current section ONLY
+  // Filter questions for the active part
   const currentPartQuestions = useMemo(() => {
     return allActiveQuestions.filter((q) => q.part === currentPart);
   }, [allActiveQuestions, currentPart]);
 
+  // Current section details
   const currentSectionInfo = useMemo(() => {
     return activeSections.find((s) => s.id === currentPart) || activeSections[0];
   }, [activeSections, currentPart]);
 
-  // Part progress
+  // Total answered in current section
   const answeredInCurrentPart = useMemo(() => {
-    return currentPartQuestions.filter((q) => answers[q.id] !== undefined).length;
+    return currentPartQuestions.filter((q) => !!answers[q.id]).length;
   }, [currentPartQuestions, answers]);
 
+  // Have all questions in this part been answered?
   const allQuestionsAnsweredInPart = answeredInCurrentPart === currentPartQuestions.length;
 
-  // Handle answer selection (disabled if part is locked)
-  const handleSelectAnswer = (questionId: string, optionKey: AnswerOption) => {
+  // Handle selecting an answer
+  const handleSelectAnswer = (questionId: string, answer: AnswerOption) => {
     if (isPartLocked) return;
     setAnswers((prev) => ({
       ...prev,
-      [questionId]: optionKey,
+      [questionId]: answer,
     }));
   };
 
-  // Start exam from welcome gate
+  // Start exam from SPA WelcomeGate
   const handleStartExam = () => {
-    setAnswers({});
+    setTestStatus('exam');
     setCurrentPart(1);
     setTimeRemaining(activePartDurations[1]);
-    setTestStatus('exam');
+    examStartTimestampRef.current = Date.now();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Continue to the next part or submit
+  // Continue to next part or submit
   const handleContinueToNextPart = () => {
     if (currentPart < 4) {
-      const next = (currentPart + 1) as 1 | 2 | 3 | 4;
-      setCurrentPart(next);
-      setTimeRemaining(activePartDurations[next]);
+      const nextPart = (currentPart + 1) as 1 | 2 | 3 | 4;
+      setCurrentPart(nextPart);
+      setTimeRemaining(activePartDurations[nextPart]);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
-      // Finished all 4 parts! Calculate score and submit
-      handleFinishExam();
+      handleFinalSubmit();
     }
   };
 
-  // Fast forward timer to 0 for testing/convenience
-  const handleDevFastForward = () => {
-    setTimeRemaining(0);
-  };
+  // Final evaluation and submission
+  const handleFinalSubmit = () => {
+    let score = 0;
+    allActiveQuestions.forEach((q) => {
+      if (answers[q.id] === q.correctAnswer) {
+        score++;
+      }
+    });
 
-  // Open reset warning modal
-  const handlePromptResetTest = () => {
-    setIsResetWarningOpen(true);
-  };
+    const totalQuestions = allActiveQuestions.length;
+    const timeSpentSeconds = Math.max(
+      60,
+      Math.floor((Date.now() - examStartTimestampRef.current) / 1000)
+    );
 
-  // Confirm reset: wipe current test answers, timer, and return to main menu (gate)
-  const handleConfirmResetTest = () => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-    localStorage.removeItem(STORAGE_ANSWERS_KEY);
-    localStorage.removeItem(STORAGE_PART_KEY);
-    localStorage.removeItem(STORAGE_TIMER_KEY);
-    localStorage.setItem(STORAGE_STATUS_KEY, 'gate');
-    setAnswers({});
-    setCurrentPart(1);
-    setTimeRemaining(activePartDurations[1]);
-    setIsResetWarningOpen(false);
-    setTestStatus('gate');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  // Finish exam
-  const handleFinishExam = () => {
-    const score = allActiveQuestions.filter((q) => answers[q.id] === q.correctAnswer).length;
     const sectionScores = examDef.calculateSectionScores(answers);
-
-    // Estimate total time spent across all parts
-    const totalAllocated = Object.values(activePartDurations).reduce((a, b) => a + b, 0);
-    const timeSpent = Math.max(120, totalAllocated - timeRemaining);
 
     const newAttempt: ExamAttempt = {
       id: `attempt_${Date.now()}`,
       timestamp: Date.now(),
-      examType: selectedExam,
-      studentOrganization: studentOrganization || 'Organización Estudiantil Tec',
-      studentName: studentName.trim() || 'Aspirante',
-      answers: { ...answers },
+      studentName: studentName || 'Aspirante',
+      studentOrganization: studentOrganization || DEFAULT_SPONSORING_ORG,
       score,
-      totalQuestions: allActiveQuestions.length,
-      timeSpentSeconds: timeSpent,
+      totalQuestions,
       sectionScores,
+      answers: { ...answers },
+      timeSpentSeconds,
+      examType: selectedExam,
     };
 
-    setAttempts((prev) => [newAttempt, ...prev]);
     setLatestAttempt(newAttempt);
-    setReviewAttempt(newAttempt);
+    setAttempts((prev) => [newAttempt, ...prev]);
     setTestStatus('submitted');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Start a new full attempt
+  // Start fresh attempt
   const handleStartNewAttempt = () => {
     setAnswers({});
     setCurrentPart(1);
     setTimeRemaining(activePartDurations[1]);
-    setTestStatus('exam');
+    setLatestAttempt(null);
+    setReviewAttempt(null);
+    setTestStatus('spa');
+    examStartTimestampRef.current = Date.now();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Retry only incorrect questions
+  // Retry only missed questions
   const handleRetryIncorrectOnly = () => {
-    const attemptToUse = reviewAttempt || latestAttempt;
-    if (!attemptToUse) return;
+    if (!latestAttempt && !reviewAttempt) return;
+    const sourceAttempt = latestAttempt || reviewAttempt!;
 
-    const missedIds = allActiveQuestions
-      .filter((q) => attemptToUse.answers[q.id] !== q.correctAnswer)
-      .map((q) => q.id);
-
-    if (missedIds.length === 0) {
-      return;
-    }
-
-    const newAnswers = { ...answers };
-    missedIds.forEach((id) => {
-      delete newAnswers[id];
+    const preservedAnswers: Record<string, AnswerOption> = {};
+    allActiveQuestions.forEach((q) => {
+      if (sourceAttempt.answers[q.id] === q.correctAnswer) {
+        preservedAnswers[q.id] = sourceAttempt.answers[q.id];
+      }
     });
 
-    setAnswers(newAnswers);
+    setAnswers(preservedAnswers);
     setCurrentPart(1);
     setTimeRemaining(activePartDurations[1]);
     setTestStatus('exam');
+    examStartTimestampRef.current = Date.now();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Clear history completely
-  const handleClearHistory = () => {
-    setAttempts([]);
-    setLatestAttempt(null);
-    setReviewAttempt(null);
-    localStorage.removeItem(STORAGE_ATTEMPTS_KEY);
+  // Fast forward timer helper for testing
+  const handleDevFastForward = () => {
+    setTimeRemaining(0);
   };
 
-  // Delete a single attempt from history
+  // Reset exam warning trigger
+  const handleRequestResetTest = () => {
+    setIsResetWarningOpen(true);
+  };
+
+  const handleConfirmResetTest = () => {
+    setIsResetWarningOpen(false);
+    setAnswers({});
+    setCurrentPart(1);
+    setTimeRemaining(activePartDurations[1]);
+    setTestStatus('landing');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Clear history
+  const handleClearHistory = () => {
+    setAttempts([]);
+    localStorage.removeItem(STORAGE_ATTEMPTS_KEY);
+    setLatestAttempt(null);
+    setReviewAttempt(null);
+  };
+
+  // Delete single attempt
   const handleDeleteSingleAttempt = (attemptId: string) => {
     const updated = attempts.filter((a) => a.id !== attemptId);
     setAttempts(updated);
-    localStorage.setItem(STORAGE_ATTEMPTS_KEY, JSON.stringify(updated));
     if (latestAttempt?.id === attemptId) {
       setLatestAttempt(updated[0] || null);
     }
@@ -338,14 +355,28 @@ export default function App() {
   };
 
   // Choose questions list for results / review
-  const activeReviewQuestions = reviewAttempt && reviewAttempt.examType
-    ? EXAM_DEFINITIONS[reviewAttempt.examType].questions
-    : allActiveQuestions;
+  const activeReviewQuestions = useMemo(() => {
+    if (reviewAttempt && reviewAttempt.examType && EXAM_DEFINITIONS[reviewAttempt.examType as 'piense2' | 'paa']) {
+      return EXAM_DEFINITIONS[reviewAttempt.examType as 'piense2' | 'paa'].questions;
+    }
+    return allActiveQuestions;
+  }, [reviewAttempt, allActiveQuestions]);
 
   return (
-    <div className="min-h-screen w-full bg-white text-black flex flex-col font-serif">
-      {/* 1. WELCOME GATE: Main menu where student chooses test between PAA and PIENSE II */}
-      {testStatus === 'gate' && (
+    <div className={`min-h-screen w-full flex flex-col font-serif transition-colors duration-400 ${
+      darkMode ? 'liquid-mesh-dark text-slate-100' : 'liquid-mesh-light text-slate-900'
+    }`}>
+      {/* 0. PANTALLA DE INICIO: CLARIFY con eslogan 5 palabras, solo modo oscuro arriba y botón Comenzar */}
+      {testStatus === 'landing' && (
+        <LandingHero
+          onStart={() => setTestStatus('spa')}
+          darkMode={darkMode}
+          onToggleTheme={toggleTheme}
+        />
+      )}
+
+      {/* 1. SECCIÓN SPA: Simulacros De Pruebas Académicas (PAA y PIENSE II) */}
+      {testStatus === 'spa' && (
         <WelcomeGate
           studentName={studentName}
           onUpdateStudentName={(name) => setStudentName(name)}
@@ -359,13 +390,15 @@ export default function App() {
           onStartExam={handleStartExam}
           attemptsCount={attempts.length}
           onOpenHistory={() => setIsHistoryOpen(true)}
+          onBackToLanding={() => setTestStatus('landing')}
+          darkMode={darkMode}
+          onToggleTheme={toggleTheme}
         />
       )}
 
-      {/* 2. EXAM VIEW: Strictly sequential, timed, black & white paper style, no colors */}
+      {/* 2. EXAM VIEW: Formato estandarizado con esquinas redondeadas y bordes gris medio */}
       {testStatus === 'exam' && (
-        <div className="flex-1 flex flex-col bg-white">
-          {/* Header with ONLY the parts, timer, fast forward and reset test buttons */}
+        <div className="flex-1 flex flex-col">
           <MicrosoftFormsHeader
             currentPart={currentPart}
             timeRemainingSeconds={timeRemaining}
@@ -373,68 +406,69 @@ export default function App() {
             sections={activeSections}
             examShortTitle={examDef.shortTitle}
             onDevFastForward={handleDevFastForward}
-            onResetTest={handlePromptResetTest}
+            onResetTest={handleRequestResetTest}
+            darkMode={darkMode}
+            onToggleTheme={toggleTheme}
           />
 
-          {/* Main Paper Content Container */}
-          <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-6 bg-white">
-            {/* PART 1 GRAND TITLE REQUIREMENT */}
+          <main className="w-full max-w-[1550px] mx-auto px-4 sm:px-8 py-6 flex-1">
+            {/* Exam Title Card (Part 1 only) */}
             {currentPart === 1 && (
-              <div className="bg-white border-4 border-black p-5 sm:p-7 mb-6 text-center">
-                <span className="text-[11px] sm:text-xs font-mono uppercase tracking-widest text-black font-bold block mb-2">
-                  {selectedExam === 'piense2'
-                    ? 'Tecnológico de Monterrey • PrepaTec • College Board'
-                    : `Tecnológico de Monterrey • ${studentOrganization || 'Organizaciones Estudiantiles'} • College Board`}
-                </span>
-                
+              <div className="glass-panel rounded-3xl border border-slate-300/80 dark:border-slate-700/80 p-6 sm:p-8 mb-6 text-center shadow-md">
                 {selectedExam === 'piense2' ? (
                   <>
-                    <h1 className="text-3xl sm:text-5xl font-extrabold uppercase tracking-tight text-black font-serif">
+                    <h1 className="text-3xl sm:text-5xl font-extrabold uppercase tracking-tight font-serif">
                       PIENSE II
                     </h1>
-                    <div className="w-24 h-1 bg-black mx-auto my-3"></div>
-                    <h2 className="text-xs sm:text-sm md:text-base font-bold uppercase tracking-wider text-black">
+                    <div className="w-20 h-1 bg-indigo-500 rounded-full mx-auto my-3"></div>
+                    <h2 className="text-xs sm:text-sm md:text-base font-bold uppercase tracking-wider">
                       Prueba de Ingreso y Evaluación en la Educación Secundaria y Media Superior
                     </h2>
-                    <p className="text-xs text-black italic mt-1.5 font-serif">
+                    <p className="text-xs italic mt-1.5 font-serif opacity-80">
                       Folleto Oficial de Examen • Simulacro Estandarizado (154 Reactivos • 130 Minutos)
                     </p>
                   </>
                 ) : (
                   <>
-                    <h1 className="text-4xl sm:text-7xl font-extrabold uppercase tracking-tight text-black font-serif">
+                    <h1 className="text-4xl sm:text-7xl font-extrabold uppercase tracking-tight font-serif">
                       PAA
                     </h1>
+                    <div className="w-20 h-1 bg-indigo-500 rounded-full mx-auto my-3"></div>
+                    <h2 className="text-xs sm:text-sm md:text-base font-bold uppercase tracking-wider">
+                      Prueba de Aptitud Académica
+                    </h2>
+                    <p className="text-xs italic mt-1.5 font-serif opacity-80">
+                      Folleto Oficial de Examen • Simulacro Estandarizado (175 Reactivos • 180 Minutos)
+                    </p>
                   </>
                 )}
               </div>
             )}
 
-            {/* Section Title Banner - Organized so texts fit straight */}
-            <div className="bg-white border-2 border-black p-4 sm:p-5 mb-6 text-center">
-              <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold uppercase tracking-tight text-black font-serif">
+            {/* Section Title Banner with Rounded Corners */}
+            <div className="glass-panel rounded-2xl border border-slate-300/80 dark:border-slate-700/80 p-5 mb-6 text-center shadow-sm">
+              <h2 className="text-xl sm:text-2xl font-extrabold uppercase tracking-tight font-serif">
                 Parte {currentPart}: {currentSectionInfo.name}
               </h2>
-              <div className="w-16 h-0.5 bg-black mx-auto my-2"></div>
-              <div className="flex items-center justify-center gap-3 text-xs sm:text-sm text-black font-mono font-medium flex-wrap">
+              <div className="w-16 h-0.5 bg-indigo-500 rounded-full mx-auto my-2"></div>
+              <div className="flex items-center justify-center gap-3 text-xs sm:text-sm font-mono font-medium flex-wrap opacity-85">
                 <span>{currentPartQuestions.length} Reactivos</span>
                 <span>•</span>
                 <span>Tiempo asignado: {currentSectionInfo.durationMinutes} minutos</span>
               </div>
-              <p className="text-xs text-black font-serif italic mt-1.5">
+              <p className="text-xs font-serif italic mt-1.5 opacity-80">
                 {currentSectionInfo.description}
               </p>
             </div>
 
-            {/* Status & Timing Banners - 100% White with Black Borders */}
+            {/* Status & Timing Banners with Rounded Corners */}
             {isPartLocked ? (
-              /* TIME EXPIRED BANNER -> Part is locked, Continue button enabled */
-              <div className="bg-white border-2 border-black p-4 mb-6 flex flex-col sm:flex-row items-center justify-between gap-3 font-sans">
-                <div className="flex items-center gap-2.5 text-black">
-                  <Lock className="w-5 h-5 text-black shrink-0" />
+              <div className="glass-panel rounded-2xl border border-slate-300/80 dark:border-slate-700/80 p-4 mb-6 flex flex-col sm:flex-row items-center justify-between gap-3 font-sans shadow-sm">
+                <div className="flex items-center gap-2.5">
+                  <Lock className="w-5 h-5 text-indigo-500 shrink-0" />
                   <div>
                     <div className="font-bold text-sm">Tiempo de la sección concluido</div>
-                    <div className="text-xs text-black font-serif">
+                    <div className="text-xs opacity-75 font-serif">
                       Las respuestas de esta parte están bloqueadas en modo lectura. Presiona continuar para avanzar.
                     </div>
                   </div>
@@ -442,20 +476,19 @@ export default function App() {
 
                 <button
                   onClick={handleContinueToNextPart}
-                  className="bg-white hover:bg-black hover:text-white text-black font-bold px-5 py-2.5 text-xs sm:text-sm border-2 border-black flex items-center gap-2 shrink-0 cursor-pointer transition uppercase"
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-5 py-2.5 text-xs sm:text-sm rounded-xl flex items-center gap-2 shrink-0 cursor-pointer transition uppercase btn-dynamic shadow-md"
                 >
                   <span>{currentPart < 4 ? `Continuar a la Parte ${currentPart + 1}` : 'Finalizar Examen'}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
             ) : allQuestionsAnsweredInPart ? (
-              /* ALL ANSWERED BUT TIMER STILL RUNNING */
-              <div className="bg-white border-2 border-black p-4 mb-6 flex flex-col sm:flex-row items-center justify-between gap-3 font-serif">
+              <div className="glass-panel rounded-2xl border border-slate-300/80 dark:border-slate-700/80 p-4 mb-6 flex flex-col sm:flex-row items-center justify-between gap-3 font-serif shadow-sm">
                 <div className="flex items-center gap-2.5">
-                  <Clock className="w-5 h-5 text-black shrink-0" />
+                  <Clock className="w-5 h-5 text-indigo-500 shrink-0" />
                   <div>
-                    <div className="font-bold text-sm text-black">Has respondido todas las preguntas de esta parte</div>
-                    <div className="text-xs text-black leading-relaxed">
+                    <div className="font-bold text-sm">Has respondido todas las preguntas de esta parte</div>
+                    <div className="text-xs opacity-80 leading-relaxed">
                       Por reglamento oficial, debes esperar a que termine el tiempo ({formatTime(timeRemaining)}) para continuar. Puedes repasar tus respuestas de esta sección.
                     </div>
                   </div>
@@ -463,7 +496,7 @@ export default function App() {
 
                 <button
                   onClick={handleDevFastForward}
-                  className="text-xs text-black hover:underline shrink-0 font-sans cursor-pointer font-bold uppercase"
+                  className="text-xs text-indigo-600 dark:text-sky-400 hover:underline shrink-0 font-sans cursor-pointer font-bold uppercase btn-dynamic"
                   title="Acelerar espera para pruebas"
                 >
                   Adelantar timer ({formatTime(timeRemaining)})
@@ -484,7 +517,7 @@ export default function App() {
               ))}
             </div>
 
-            {/* Official STOP Banner with Exam Timing Details */}
+            {/* Official STOP Banner with Rounded Corners */}
             <StopSignBanner
               currentPart={currentPart}
               timeRemainingSeconds={timeRemaining}
@@ -496,36 +529,33 @@ export default function App() {
             />
 
             {/* Bottom Progression Bar */}
-            <div className="mt-8 border-t-2 border-black pt-6 pb-12 font-sans">
+            <div className="mt-8 border-t border-slate-300/70 dark:border-slate-700/70 pt-6 pb-12 font-sans">
               {isPartLocked ? (
-                /* Button enabled when timer finished */
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white border border-black p-4">
-                  <div className="text-xs text-black font-serif">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 glass-panel rounded-2xl border border-slate-300/80 dark:border-slate-700/80 p-4 shadow-sm">
+                  <div className="text-xs font-serif opacity-90">
                     <strong>Parte {currentPart} finalizada.</strong> Tus respuestas han quedado registradas.
                   </div>
                   <button
                     onClick={handleContinueToNextPart}
-                    className="w-full sm:w-auto bg-black hover:bg-slate-800 text-white font-bold px-6 py-3 text-sm border border-black flex items-center justify-center gap-2 cursor-pointer transition"
+                    className="w-full sm:w-auto bg-gradient-to-r from-slate-900 to-indigo-950 dark:from-sky-500 dark:to-indigo-600 text-white font-bold px-6 py-3 rounded-2xl text-sm flex items-center justify-center gap-2 cursor-pointer transition btn-dynamic shadow-md"
                   >
                     <span>{currentPart < 4 ? `Continuar a la Parte ${currentPart + 1}` : 'Finalizar Examen y Ver Resultados'}</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
               ) : allQuestionsAnsweredInPart ? (
-                /* Finished questions but waiting for timer */
-                <div className="bg-slate-50 border border-black p-4 text-center">
-                  <p className="text-sm font-bold text-black font-serif mb-1">
+                <div className="glass-panel rounded-2xl border border-slate-300/80 dark:border-slate-700/80 p-5 text-center shadow-sm">
+                  <p className="text-sm font-bold font-serif mb-1">
                     Has completado las {currentPartQuestions.length} preguntas de la Parte {currentPart}.
                   </p>
-                  <p className="text-xs text-slate-700 font-serif">
+                  <p className="text-xs opacity-75 font-serif">
                     El botón de continuar estará disponible cuando el temporizador llegue a <strong>00:00</strong> (Tiempo restante: <strong>{formatTime(timeRemaining)}</strong>).
                   </p>
                 </div>
               ) : (
-                /* Still answering questions */
-                <div className="flex justify-between items-center text-xs text-slate-600 font-serif">
+                <div className="flex justify-between items-center text-xs opacity-75 font-serif">
                   <span>Respondidas: {answeredInCurrentPart} de {currentPartQuestions.length}</span>
-                  <span>Tiempo restante: <strong className="text-black font-mono">{formatTime(timeRemaining)}</strong></span>
+                  <span>Tiempo restante: <strong className="font-mono opacity-100">{formatTime(timeRemaining)}</strong></span>
                 </div>
               )}
             </div>
@@ -542,7 +572,7 @@ export default function App() {
           onNewFullAttempt={handleStartNewAttempt}
           onRetryIncorrectOnly={handleRetryIncorrectOnly}
           onOpenHistory={() => setIsHistoryOpen(true)}
-          onBackToMainMenu={() => setTestStatus('gate')}
+          onBackToMainMenu={() => setTestStatus('landing')}
         />
       )}
 
@@ -556,7 +586,7 @@ export default function App() {
           onRetryIncorrectOnly={handleRetryIncorrectOnly}
           onOpenHistory={() => setIsHistoryOpen(true)}
           onBackToForm={() => setTestStatus('submitted')}
-          onBackToMainMenu={() => setTestStatus('gate')}
+          onBackToMainMenu={() => setTestStatus('landing')}
         />
       )}
 
@@ -567,8 +597,8 @@ export default function App() {
         attempts={attempts}
         onSelectAttemptForReview={(attempt) => {
           setReviewAttempt(attempt);
-          if (attempt.examType && EXAM_DEFINITIONS[attempt.examType]) {
-            setSelectedExam(attempt.examType);
+          if (attempt.examType && EXAM_DEFINITIONS[attempt.examType as 'piense2' | 'paa']) {
+            setSelectedExam(attempt.examType as 'piense2' | 'paa');
           }
           setTestStatus('results');
         }}
@@ -576,7 +606,7 @@ export default function App() {
         onDeleteSingleAttempt={handleDeleteSingleAttempt}
       />
 
-      {/* Reset Test Warning Modal: asks confirmation and returns to main menu */}
+      {/* Reset Test Warning Modal */}
       <ResetWarningModal
         isOpen={isResetWarningOpen}
         onClose={() => setIsResetWarningOpen(false)}

@@ -19,7 +19,7 @@ export const StopSignBanner: React.FC<StopSignBannerProps> = ({
   totalQuestionsInPart,
   answeredInPart,
   sections = defaultSections,
-  examName = 'Prueba PIENSE II',
+  examName = 'Prueba Estandarizada',
 }) => {
   const currentSection = sections.find((s) => s.id === currentPart) || sections[0];
   const formatTime = (secs: number) => {
@@ -33,106 +33,109 @@ export const StopSignBanner: React.FC<StopSignBannerProps> = ({
   const totalExamQuestions = sections.reduce((acc, s) => acc + s.totalQuestions, 0);
 
   return (
-    <div className="my-8 bg-white border-4 border-black p-5 sm:p-7 shadow-xs font-serif text-black">
+    <div className="my-8 glass-panel rounded-3xl border border-slate-300/80 dark:border-slate-700/80 p-6 sm:p-8 shadow-md font-serif">
       {/* Official Exam STOP Header */}
-      <div className="text-center border-b-2 border-black pb-5">
-        <div className="inline-flex items-center justify-center gap-2 bg-black text-white px-5 py-2 mb-3">
-          <AlertOctagon className="w-6 h-6 text-white shrink-0" />
-          <span className="text-2xl sm:text-3xl font-extrabold tracking-widest uppercase font-mono">
+      <div className="text-center border-b border-slate-300/70 dark:border-slate-700/70 pb-5">
+        <div className="inline-flex items-center justify-center gap-2 bg-slate-900 dark:bg-slate-800 text-white px-6 py-2.5 rounded-2xl mb-3 shadow-md">
+          <AlertOctagon className="w-6 h-6 text-amber-400 shrink-0" />
+          <span className="text-xl sm:text-2xl font-extrabold tracking-widest uppercase font-mono">
             DETÉNGASE
           </span>
         </div>
 
-        <p className="text-base sm:text-lg font-bold uppercase tracking-wide text-black mt-1 leading-snug">
+        <p className="text-base sm:text-lg font-bold uppercase tracking-wide mt-1 leading-snug">
           NO PASE A LA SIGUIENTE PARTE HASTA QUE SE LE INDIQUE.
         </p>
-        <p className="text-xs sm:text-sm text-slate-800 italic max-w-xl mx-auto mt-2 leading-relaxed">
+        <p className="text-xs sm:text-sm opacity-80 italic max-w-xl mx-auto mt-2 leading-relaxed">
           SI TERMINA ANTES DE QUE SE CUMPLA EL TIEMPO REGLAMENTARIO, REPASE SOLAMENTE LAS PREGUNTAS DE ESTA PARTE. NO TRABAJE EN NINGUNA OTRA PARTE NI SE ADELANTE.
         </p>
       </div>
 
       {/* Timing and Exam Specifications */}
       <div className="mt-5 pt-1 font-sans">
-        <div className="flex items-center gap-2 text-xs uppercase tracking-wider font-bold text-black mb-3">
-          <Clock className="w-4 h-4 text-black" />
+        <div className="flex items-center gap-2 text-xs uppercase tracking-wider font-bold mb-3 opacity-90">
+          <Clock className="w-4 h-4 text-indigo-500" />
           <span>Detalles Reglamentarios de los Tiempos de la {examName}</span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-          {/* Current Part Timing Status */}
-          <div className="bg-slate-50 border border-black p-3.5 rounded-none">
-            <div className="font-bold text-black mb-1 flex items-center justify-between">
-              <span>Tiempo de la Parte {currentPart}: {currentSection.name}</span>
-              <span className="font-mono bg-white px-2 py-0.5 border border-black text-black font-bold">
-                {currentSection.durationMinutes} min asignados
-              </span>
-            </div>
-            <div className="mt-2 space-y-1 text-slate-900 font-serif">
-              <div className="flex justify-between">
-                <span>Reactivos en esta parte:</span>
-                <strong>{totalQuestionsInPart} preguntas</strong>
-              </div>
-              <div className="flex justify-between">
-                <span>Reactivos respondidos:</span>
-                <strong className={answeredInPart === totalQuestionsInPart ? 'text-black underline font-bold' : 'text-slate-800'}>
-                  {answeredInPart} de {totalQuestionsInPart}
-                </strong>
-              </div>
-              <div className="flex justify-between items-center pt-1 border-t border-slate-300">
-                <span>Tiempo restante:</span>
-                <span className={`font-mono text-sm font-bold text-black`}>
-                  {isPartLocked ? '00:00 (Agotado)' : formatTime(timeRemainingSeconds)}
-                </span>
-              </div>
-              <div className="text-[11px] text-slate-700 mt-2 italic">
-                {isPartLocked ? (
-                  <span className="text-black font-bold not-italic flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 inline text-black" /> Tiempo completado. Ya puede continuar a la siguiente sección.
-                  </span>
-                ) : (
-                  <span>
-                    El avance estará habilitado al cumplirse el tiempo reglamentario de esta parte (o puede usar el botón superior <strong>"Adelantar timer"</strong>).
-                  </span>
-                )}
-              </div>
-            </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs mb-4">
+          <div className="rounded-xl border border-slate-300/70 dark:border-slate-700/70 p-3 bg-white/50 dark:bg-slate-800/40">
+            <span className="text-[10px] uppercase font-bold opacity-75 block font-mono">Sección Actual</span>
+            <span className="font-bold text-sm">Parte {currentPart}</span>
+            <span className="text-[11px] opacity-75 block truncate font-serif">{currentSection.name}</span>
           </div>
 
-          {/* Full Exam Structure and Timing Overview */}
-          <div className="bg-slate-50 border border-black p-3.5 rounded-none">
-            <div className="font-bold text-black mb-1 flex items-center justify-between">
-              <span>Estructura Global del Simulacro</span>
-              <span className="font-mono bg-black text-white px-2 py-0.5 font-bold">
-                Total: {totalExamMinutes} min
-              </span>
-            </div>
-            <ul className="mt-2 space-y-1.5 text-black font-serif">
+          <div className="rounded-xl border border-slate-300/70 dark:border-slate-700/70 p-3 bg-white/50 dark:bg-slate-800/40">
+            <span className="text-[10px] uppercase font-bold opacity-75 block font-mono">Tiempo Restante</span>
+            <span className="font-mono text-base font-extrabold text-indigo-600 dark:text-sky-300">{formatTime(timeRemainingSeconds)}</span>
+            <span className="text-[11px] opacity-75 block font-serif">de {currentSection.durationMinutes} min asignados</span>
+          </div>
+
+          <div className="rounded-xl border border-slate-300/70 dark:border-slate-700/70 p-3 bg-white/50 dark:bg-slate-800/40">
+            <span className="text-[10px] uppercase font-bold opacity-75 block font-mono">Progreso de Sección</span>
+            <span className="font-mono text-base font-extrabold">{answeredInPart} / {totalQuestionsInPart}</span>
+            <span className="text-[11px] opacity-75 block font-serif">
+              {answeredInPart === totalQuestionsInPart ? 'Completada' : `${totalQuestionsInPart - answeredInPart} pendientes`}
+            </span>
+          </div>
+
+          <div className="rounded-xl border border-slate-300/70 dark:border-slate-700/70 p-3 bg-white/50 dark:bg-slate-800/40">
+            <span className="text-[10px] uppercase font-bold opacity-75 block font-mono">Estructura Global</span>
+            <span className="font-mono text-base font-extrabold">{totalExamQuestions} Reactivos</span>
+            <span className="text-[11px] opacity-75 block font-serif">{totalExamMinutes} min totales</span>
+          </div>
+        </div>
+
+        {/* Section Times Table */}
+        <div className="rounded-2xl border border-slate-300/70 dark:border-slate-700/70 overflow-hidden font-mono text-xs">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-slate-100/90 dark:bg-slate-800/80 text-left border-b border-slate-300/70 dark:border-slate-700/70">
+                <th className="p-2 sm:p-2.5 font-bold">Sección</th>
+                <th className="p-2 sm:p-2.5 font-bold">Contenido</th>
+                <th className="p-2 sm:p-2.5 font-bold text-center">Reactivos</th>
+                <th className="p-2 sm:p-2.5 font-bold text-center">Tiempo</th>
+                <th className="p-2 sm:p-2.5 font-bold text-center">Estatus</th>
+              </tr>
+            </thead>
+            <tbody>
               {sections.map((sec) => {
-                const isThis = sec.id === currentPart;
-                const isDone = sec.id < currentPart;
+                const isCurrent = sec.id === currentPart;
+                const isPast = sec.id < currentPart;
+
                 return (
-                  <li
+                  <tr
                     key={sec.id}
-                    className={`flex items-center justify-between px-2 py-1 text-[11px] ${
-                      isThis
-                        ? 'bg-slate-200 border border-black font-bold text-black'
-                        : isDone
-                        ? 'text-slate-500 line-through'
-                        : 'text-slate-800'
+                    className={`border-b border-slate-200/70 dark:border-slate-800/70 ${
+                      isCurrent
+                        ? 'bg-indigo-50/50 dark:bg-sky-950/30 font-bold'
+                        : isPast
+                        ? 'opacity-65'
+                        : 'opacity-85'
                     }`}
                   >
-                    <span>
-                      Parte {sec.id}: {sec.name} ({sec.totalQuestions} reactivos)
-                    </span>
-                    <span className="font-mono font-semibold">{sec.durationMinutes} min</span>
-                  </li>
+                    <td className="p-2 sm:p-2.5 font-bold">Parte {sec.id}</td>
+                    <td className="p-2 sm:p-2.5 font-serif">{sec.name}</td>
+                    <td className="p-2 sm:p-2.5 text-center">{sec.totalQuestions}</td>
+                    <td className="p-2 sm:p-2.5 text-center">{sec.durationMinutes} min</td>
+                    <td className="p-2 sm:p-2.5 text-center">
+                      {isCurrent ? (
+                        <span className="inline-block px-2 py-0.5 rounded-full text-[10px] bg-indigo-600 dark:bg-sky-500 text-white font-bold">
+                          En Curso
+                        </span>
+                      ) : isPast ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Concluida
+                        </span>
+                      ) : (
+                        <span className="text-[11px] opacity-60">Bloqueada</span>
+                      )}
+                    </td>
+                  </tr>
                 );
               })}
-            </ul>
-            <div className="text-[10px] text-slate-600 mt-2 border-t border-slate-300 pt-1 font-sans">
-              Evaluación oficial estandarizada • {totalExamQuestions} reactivos en 4 partes cronometradas consecutivas.
-            </div>
-          </div>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

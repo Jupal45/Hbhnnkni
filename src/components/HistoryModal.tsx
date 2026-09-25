@@ -25,50 +25,57 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75">
-      <div className="bg-white border-4 border-black w-full max-w-3xl max-h-[90vh] flex flex-col font-serif text-black animate-in fade-in zoom-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+      <div className="glass-panel rounded-3xl border border-slate-300/80 dark:border-slate-700/80 w-full max-w-3xl max-h-[90vh] flex flex-col font-serif shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-150">
         {/* Header */}
-        <div className="bg-black text-white p-4 sm:p-5 flex items-center justify-between border-b-2 border-black">
+        <div className="p-4 sm:p-5 flex items-center justify-between border-b border-slate-300/70 dark:border-slate-700/70 bg-white/40 dark:bg-slate-800/40">
           <div className="flex items-center gap-2.5">
-            <BookOpen className="w-5 h-5 text-white" />
-            <h3 className="font-bold text-base sm:text-lg uppercase font-serif tracking-tight">
-              Historial de Intentos Guardados ({attempts.length})
-            </h3>
+            <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center">
+              <BookOpen className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-bold text-base sm:text-lg font-sans">
+                Historial de Intentos Guardados ({attempts.length})
+              </h3>
+              <p className="text-[11px] opacity-75 font-serif">Intentos ilimitados registrados en este dispositivo</p>
+            </div>
           </div>
           <button
             onClick={() => {
               setConfirmClearAll(false);
               onClose();
             }}
-            className="text-white hover:bg-slate-800 p-1 border border-white transition cursor-pointer"
+            className="p-1.5 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
             aria-label="Cerrar modal"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Clear All Confirmation Banner (In-UI, no window.confirm) */}
+        {/* Clear All Confirmation Banner */}
         {confirmClearAll && (
-          <div className="bg-white border-b-4 border-black p-4 text-black flex flex-col sm:flex-row items-center justify-between gap-3 font-sans">
+          <div className="border-b border-slate-300 dark:border-slate-700 p-4 bg-amber-500/10 flex flex-col sm:flex-row items-center justify-between gap-3 font-sans">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-black shrink-0" />
+              <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
               <div className="text-xs sm:text-sm font-bold">
                 ¿Confirmas eliminar permanentemente todo el historial ({attempts.length} intentos)?
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <button
+                type="button"
                 onClick={() => setConfirmClearAll(false)}
-                className="px-3 py-1.5 text-xs font-bold uppercase border-2 border-black bg-white hover:bg-slate-100 cursor-pointer"
+                className="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-bold uppercase cursor-pointer"
               >
                 Cancelar
               </button>
               <button
+                type="button"
                 onClick={() => {
                   onClearHistory();
                   setConfirmClearAll(false);
                 }}
-                className="px-4 py-1.5 text-xs font-bold uppercase border-2 border-black bg-black text-white hover:bg-slate-800 cursor-pointer"
+                className="px-4 py-1.5 rounded-xl bg-red-600 text-white text-xs font-bold uppercase transition cursor-pointer shadow-sm"
               >
                 Sí, Borrar Todo
               </button>
@@ -77,160 +84,145 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
         )}
 
         {/* Content list */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-3 font-sans">
           {attempts.length === 0 ? (
-            <div className="text-center py-12 text-slate-500 font-sans">
-              <p className="text-base font-bold text-black">No hay intentos registrados.</p>
-              <p className="text-xs text-slate-600 mt-1 font-serif">El historial está vacío. Completa un simulacro para registrar tu puntaje.</p>
+            <div className="text-center py-12">
+              <div className="w-12 h-12 rounded-2xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center mx-auto mb-3 text-slate-500">
+                <BookOpen className="w-6 h-6" />
+              </div>
+              <p className="text-sm font-bold">No hay intentos registrados todavía.</p>
+              <p className="text-xs opacity-75 font-serif mt-1">Completa una prueba para ver tus resultados aquí.</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {attempts.map((att, idx) => {
-                const percent = Math.round((att.score / att.totalQuestions) * 100);
-                const dateStr = new Date(att.timestamp).toLocaleDateString('es-MX', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                });
-                const minutes = Math.floor(att.timeSpentSeconds / 60);
-                const seconds = att.timeSpentSeconds % 60;
-                const isPassing = percent >= 60;
-                const isItemDeleting = deletingId === att.id;
+            attempts.map((att, idx) => {
+              const isPassing = att.score / att.totalQuestions >= 0.6;
+              const dateStr = new Date(att.timestamp).toLocaleDateString('es-MX', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              });
+              const isDeletingThis = deletingId === att.id;
 
-                return (
-                  <div
-                    key={att.id}
-                    className="border-2 border-black p-4 hover:bg-slate-50 transition bg-white"
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-black font-sans">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="bg-black text-white font-mono text-xs font-bold px-2 py-0.5 border border-black">
-                          #{attempts.length - idx}
-                        </span>
-                        <span className="text-[10px] uppercase font-bold font-mono px-2 py-0.5 border-2 border-black bg-white text-black">
-                          {att.examType === 'paa' ? 'PAA' : 'PIENSE II'}
-                        </span>
-                        <span className="font-bold text-black text-sm font-serif">
-                          {att.studentName || 'Aspirante'}
-                        </span>
-                        {att.studentOrganization && (
-                          <span className="text-[11px] text-slate-700 font-mono">
-                            • {att.studentOrganization}
-                          </span>
-                        )}
-                        {isPassing && (
-                          <span className="text-[10px] bg-black text-white border border-black font-bold px-2 py-0.5 flex items-center gap-1 font-mono uppercase">
-                            <Award className="w-3 h-3" /> Aprobado Oficial
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-3 text-xs text-slate-600 font-mono">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          {dateStr}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {minutes}m {seconds}s
-                        </span>
-                      </div>
+              return (
+                <div
+                  key={att.id}
+                  className="rounded-2xl border border-slate-300/80 dark:border-slate-700/80 p-4 transition flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white/50 dark:bg-slate-800/40 shadow-sm"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 flex items-center justify-center font-mono font-bold text-xs shrink-0">
+                      #{attempts.length - idx}
                     </div>
-
-                    <div className="mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div>
-                        <div className="text-base font-bold text-black font-mono">
-                          {att.score} / {att.totalQuestions}{' '}
-                          <span className="text-xs font-sans text-slate-700 font-bold">({percent}%)</span>
-                        </div>
-                        <div className="flex gap-2 text-[11px] text-slate-700 mt-1 font-mono">
-                          <span>P1: {att.sectionScores.part1.score}/{att.sectionScores.part1.total}</span>
-                          <span>•</span>
-                          <span>P2: {att.sectionScores.part2.score}/{att.sectionScores.part2.total}</span>
-                          <span>•</span>
-                          <span>P3: {att.sectionScores.part3.score}/{att.sectionScores.part3.total}</span>
-                          <span>•</span>
-                          <span>P4: {att.sectionScores.part4.score}/{att.sectionScores.part4.total}</span>
-                        </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-sm">
+                          {att.customExamTitle || (att.examType === 'paa' ? 'Prueba PAA' : 'PIENSE II')}
+                        </span>
+                        <span className={`text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full border ${
+                          isPassing
+                            ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                            : 'border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                        }`}>
+                          {isPassing ? 'Aprobado' : 'Por Mejorar'}
+                        </span>
                       </div>
-
-                      <div className="flex items-center gap-2">
-                        {/* Single attempt deletion button */}
-                        {onDeleteSingleAttempt && (
-                          isItemDeleting ? (
-                            <div className="flex items-center gap-1">
-                              <button
-                                onClick={() => {
-                                  onDeleteSingleAttempt(att.id);
-                                  setDeletingId(null);
-                                }}
-                                className="px-2 py-1 text-[11px] font-bold bg-black text-white border border-black uppercase font-mono cursor-pointer"
-                                title="Confirmar eliminar este intento"
-                              >
-                                Confirmar
-                              </button>
-                              <button
-                                onClick={() => setDeletingId(null)}
-                                className="px-2 py-1 text-[11px] font-bold bg-white text-black border border-black uppercase font-mono cursor-pointer"
-                              >
-                                No
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => setDeletingId(att.id)}
-                              className="p-1.5 text-black hover:bg-slate-200 border border-slate-300 hover:border-black transition cursor-pointer"
-                              title="Borrar este intento"
-                              aria-label="Borrar intento"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )
-                        )}
-
-                        <button
-                          onClick={() => {
-                            onSelectAttemptForReview(att);
-                            onClose();
-                          }}
-                          className="bg-white hover:bg-black hover:text-white text-black border-2 border-black text-xs font-bold px-3 py-1.5 transition flex items-center justify-center gap-1 cursor-pointer font-sans uppercase"
-                        >
-                          <span>Revisar respuestas</span>
-                          <ArrowRight className="w-3 h-3" />
-                        </button>
+                      <div className="text-xs opacity-80 mt-0.5">
+                        Aspirante: <strong>{att.studentName || 'Aspirante'}</strong> • Escuela: {att.studentOrganization || 'Ninguna'}
+                      </div>
+                      <div className="text-[11px] opacity-65 font-mono flex items-center gap-3 mt-1">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" /> {dateStr}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" /> {Math.floor(att.timeSpentSeconds / 60)}m {att.timeSpentSeconds % 60}s
+                        </span>
                       </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
+
+                  <div className="flex items-center gap-3 self-end sm:self-center">
+                    <div className="text-right">
+                      <div className="text-base font-extrabold font-mono text-indigo-600 dark:text-sky-300">
+                        {att.score} / {att.totalQuestions}
+                      </div>
+                      <div className="text-[11px] opacity-75 font-mono">
+                        {Math.round((att.score / att.totalQuestions) * 100)}%
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onSelectAttemptForReview(att);
+                          onClose();
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold uppercase flex items-center gap-1 cursor-pointer btn-dynamic shadow-sm"
+                        title="Revisar examen resuelto"
+                      >
+                        <span>Revisar</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+
+                      {onDeleteSingleAttempt && (
+                        isDeletingThis ? (
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onDeleteSingleAttempt(att.id);
+                                setDeletingId(null);
+                              }}
+                              className="px-2 py-1 rounded-lg bg-red-600 text-white text-[10px] font-bold"
+                            >
+                              Confirmar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeletingId(null)}
+                              className="px-1.5 py-1 text-[10px] border border-slate-300 dark:border-slate-700 rounded-lg"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setDeletingId(att.id)}
+                            className="p-2 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-500 hover:text-red-600 hover:border-red-300 transition cursor-pointer"
+                            title="Eliminar este intento"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t-2 border-black bg-white flex items-center justify-between font-sans">
-          {attempts.length > 0 && !confirmClearAll && (
-            <button
-              onClick={() => setConfirmClearAll(true)}
-              className="text-xs text-black hover:underline flex items-center gap-1.5 cursor-pointer uppercase font-mono font-bold py-1 px-2 border border-black hover:bg-slate-100"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Borrar Todo el Historial</span>
-            </button>
-          )}
-
-          <button
-            onClick={() => {
-              setConfirmClearAll(false);
-              onClose();
-            }}
-            className="ml-auto bg-black text-white hover:bg-slate-800 text-xs font-bold px-4 py-2 border border-black cursor-pointer uppercase font-mono"
-          >
-            Cerrar
-          </button>
-        </div>
+        {attempts.length > 0 && (
+          <div className="p-4 border-t border-slate-300/70 dark:border-slate-700/70 flex items-center justify-between font-sans text-xs bg-white/40 dark:bg-slate-800/40">
+            <span className="opacity-75 font-mono">
+              Total de intentos: <strong>{attempts.length}</strong>
+            </span>
+            {!confirmClearAll && (
+              <button
+                type="button"
+                onClick={() => setConfirmClearAll(true)}
+                className="text-xs text-red-600 hover:underline flex items-center gap-1 font-bold cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Vaciar Todo el Historial</span>
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

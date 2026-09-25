@@ -1,1 +1,96 @@
 @import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --glass-bg: rgba(255, 255, 255, 0.72);
+    --glass-border: rgba(255, 255, 255, 0.6);
+    --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08);
+  }
+
+  .dark {
+    --glass-bg: rgba(15, 23, 42, 0.75);
+    --glass-border: rgba(255, 255, 255, 0.12);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  }
+
+  body {
+    transition: background-color 0.4s ease, color 0.4s ease;
+  }
+}
+
+/* Liquid Glass Panels */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.glass-panel-subtle {
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.dark .glass-panel-subtle {
+  background: rgba(30, 41, 59, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Dynamic Buttons: Expands slightly on hover, glows in dark mode */
+.btn-dynamic,
+button:not(:disabled):not(.no-dynamic) {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.2s ease,
+              border-color 0.2s ease,
+              color 0.2s ease;
+}
+
+.btn-dynamic:hover,
+button:not(:disabled):not(.no-dynamic):hover {
+  transform: scale(1.035);
+}
+
+.btn-dynamic:active,
+button:not(:disabled):not(.no-dynamic):active {
+  transform: scale(0.97);
+}
+
+/* Dynamic Glow in Dark Mode */
+.dark .btn-dynamic:hover,
+.dark button:not(:disabled):not(.no-dynamic):hover {
+  transform: scale(1.045);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.4), 0 0 35px rgba(99, 102, 241, 0.25);
+  border-color: rgba(56, 189, 248, 0.7);
+}
+
+/* Radiant glow for primary buttons in dark mode */
+.dark .btn-glow-primary:hover {
+  box-shadow: 0 0 25px rgba(129, 140, 248, 0.7), 0 0 50px rgba(56, 189, 248, 0.4);
+}
+
+/* Ambient Liquid Backgrounds */
+.liquid-mesh-light {
+  background-color: #f8fafc;
+  background-image: 
+    radial-gradient(at 15% 15%, rgba(224, 231, 255, 0.6) 0px, transparent 50%),
+    radial-gradient(at 85% 20%, rgba(207, 250, 254, 0.6) 0px, transparent 50%),
+    radial-gradient(at 50% 80%, rgba(243, 232, 255, 0.5) 0px, transparent 50%),
+    radial-gradient(at 80% 85%, rgba(254, 243, 199, 0.4) 0px, transparent 50%);
+}
+
+.liquid-mesh-dark {
+  background-color: #090d16;
+  background-image: 
+    radial-gradient(at 15% 15%, rgba(30, 58, 138, 0.35) 0px, transparent 50%),
+    radial-gradient(at 85% 20%, rgba(14, 116, 144, 0.3) 0px, transparent 50%),
+    radial-gradient(at 50% 80%, rgba(88, 28, 135, 0.3) 0px, transparent 50%),
+    radial-gradient(at 80% 85%, rgba(19, 78, 74, 0.25) 0px, transparent 50%);
+}

@@ -24,12 +24,12 @@ function escapeHtml(text: string | undefined): string {
  */
 export function generateExamReportHtml(attempt: ExamAttempt, questions: Question[]): string {
   const isPaa = attempt.examType === 'paa';
-  const examDef = EXAM_DEFINITIONS[attempt.examType || 'piense2'];
+  const examDef = EXAM_DEFINITIONS[attempt.examType === 'paa' ? 'paa' : 'piense2'];
   const sections = examDef.sections || defaultSections;
   const examTitle = isPaa ? 'PAA' : 'PIENSE II';
-  const orgName = attempt.studentOrganization || (isPaa ? 'Organizaciones Estudiantiles Tec' : 'PrepaTec');
+  const orgName = attempt.studentOrganization || 'Ninguna';
 
-  const total = attempt.totalQuestions;
+  const total = attempt.totalQuestions || 1;
   const score = attempt.score;
   const percentage = Math.round((score / total) * 100);
   const isPassing = percentage >= 60;
@@ -43,14 +43,16 @@ export function generateExamReportHtml(attempt: ExamAttempt, questions: Question
     year: 'numeric',
   });
   const timeStr = `${Math.floor(attempt.timeSpentSeconds / 60)} min ${attempt.timeSpentSeconds % 60} seg`;
-  const folio = `TEC-${attempt.id.slice(-6).toUpperCase()}`;
+  const folio = `SPA-${attempt.id.slice(-6).toUpperCase()}`;
 
   // Group questions by part
   const questionsByPart: Record<number, Question[]> = { 1: [], 2: [], 3: [], 4: [] };
   questions.forEach((q) => {
-    if (questionsByPart[q.part]) {
-      questionsByPart[q.part].push(q);
+    const partNum = q.part || 1;
+    if (!questionsByPart[partNum]) {
+      questionsByPart[partNum] = [];
     }
+    questionsByPart[partNum].push(q);
   });
 
   let sectionsHtml = '';
@@ -59,6 +61,7 @@ export function generateExamReportHtml(attempt: ExamAttempt, questions: Question
     const secData = attempt.sectionScores[secKey] || { score: 0, total: 0 };
     const secPercent = Math.round((secData.score / (secData.total || 1)) * 100);
     const partQuestions = questionsByPart[sec.id] || [];
+    if (partQuestions.length === 0) return;
 
     let questionsHtml = '';
     partQuestions.forEach((q) => {
@@ -71,18 +74,18 @@ export function generateExamReportHtml(attempt: ExamAttempt, questions: Question
         const isUserChoice = userAnswer === opt.key;
         const isOfficialCorrect = q.correctAnswer === opt.key;
 
-        let optStyle = 'padding: 4px 8px; margin: 2px 0; border-radius: 4px;';
+        let optStyle = 'padding: 3px 6px; margin: 2px 0; border-radius: 3px; font-size: 11px;';
         let badge = '';
 
         if (isUserChoice && isCorrect) {
           optStyle += ' background-color: #dcfce7; border: 1px solid #16a34a; font-weight: bold;';
-          badge = ' <span style="color: #15803d; font-size: 11px;">[Tu respuesta - Correcta]</span>';
+          badge = ' <span style="color: #15803d; font-size: 10px;">[Tu respuesta - Correcta]</span>';
         } else if (isUserChoice && !isCorrect) {
           optStyle += ' background-color: #fee2e2; border: 1px solid #dc2626; font-weight: bold;';
-          badge = ' <span style="color: #b91c1c; font-size: 11px;">[Tu respuesta - Incorrecta]</span>';
+          badge = ' <span style="color: #b91c1c; font-size: 10px;">[Tu respuesta - Incorrecta]</span>';
         } else if (isOfficialCorrect) {
           optStyle += ' background-color: #eff6ff; border: 1px dashed #2563eb;';
-          badge = ' <span style="color: #1d4ed8; font-size: 11px;">[Respuesta correcta oficial]</span>';
+          badge = ' <span style="color: #1d4ed8; font-size: 10px;">[Respuesta correcta oficial]</span>';
         } else {
           optStyle += ' border: 1px solid #e2e8f0;';
         }
@@ -95,10 +98,10 @@ export function generateExamReportHtml(attempt: ExamAttempt, questions: Question
       });
 
       questionsHtml += `
-        <div style="margin-bottom: 24px; padding: 16px; border: 1px solid #cbd5e1; background-color: #ffffff; page-break-inside: avoid;">
-          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px;">
-            <span style="font-weight: bold; font-size: 14px; color: #002B49;">Pregunta ${q.number}</span>
-            <span style="font-size: 12px; font-weight: bold; padding: 3px 8px; border-radius: 4px; ${
+        <div style="margin-bottom: 14px; padding: 10px 14px; border: 1px solid #cbd5e1; background-color: #ffffff; page-break-inside: avoid; break-inside: avoid;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 8px;">
+            <span style="font-weight: bold; font-size: 13px; color: #000000;">Reactivo ${q.number}</span>
+            <span style="font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 3px; ${
               !isAnswered
                 ? 'background-color: #f1f5f9; color: #64748b;'
                 : isCorrect
@@ -109,25 +112,25 @@ export function generateExamReportHtml(attempt: ExamAttempt, questions: Question
             </span>
           </div>
 
-          ${q.instructions ? `<div style="font-style: italic; font-size: 12px; color: #475569; margin-bottom: 8px; background: #f8fafc; padding: 6px 10px;">${escapeHtml(q.instructions)}</div>` : ''}
+          ${q.instructions ? `<div style="font-style: italic; font-size: 11px; color: #475569; margin-bottom: 6px; background: #f8fafc; padding: 4px 8px;">${escapeHtml(q.instructions)}</div>` : ''}
 
           ${q.passage ? `
-            <div style="margin-bottom: 12px; padding: 10px; background-color: #f8fafc; border-left: 3px solid #002B49; font-size: 13px; line-height: 1.5;">
-              ${q.passage.title ? `<div style="font-weight: bold; margin-bottom: 6px;">${escapeHtml(q.passage.title)}</div>` : ''}
+            <div style="margin-bottom: 8px; padding: 8px; background-color: #f8fafc; border-left: 3px solid #000000; font-size: 12px; line-height: 1.4;">
+              ${q.passage.title ? `<div style="font-weight: bold; margin-bottom: 4px;">${escapeHtml(q.passage.title)}</div>` : ''}
               <div>${escapeHtml(q.passage.text)}</div>
             </div>
           ` : ''}
 
-          <div style="font-size: 14px; font-weight: 500; margin-bottom: 12px; color: #0f172a;">
+          <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #0f172a;">
             ${escapeHtml(q.prompt)}
           </div>
 
-          <div style="margin-bottom: 12px;">
+          <div style="margin-bottom: 8px;">
             ${optionsListHtml}
           </div>
 
           ${q.explanation ? `
-            <div style="background-color: #f8fafc; border-left: 3px solid #64748b; padding: 8px 12px; font-size: 12px; color: #334155; margin-top: 10px;">
+            <div style="background-color: #f8fafc; border-left: 3px solid #64748b; padding: 6px 10px; font-size: 11px; color: #334155; margin-top: 6px;">
               <strong>Explicación:</strong> ${escapeHtml(q.explanation)}
             </div>
           ` : ''}
@@ -136,10 +139,10 @@ export function generateExamReportHtml(attempt: ExamAttempt, questions: Question
     });
 
     sectionsHtml += `
-      <div style="margin-top: 32px; page-break-before: always;">
-        <div style="background-color: #002B49; color: #ffffff; padding: 12px 18px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-          <h2 style="margin: 0; font-size: 18px; font-family: serif;">Parte ${sec.id}: ${escapeHtml(sec.name)}</h2>
-          <span style="font-size: 13px; font-weight: bold; background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 4px;">
+      <div style="margin-top: 24px; page-break-before: always; break-before: always;">
+        <div style="background-color: #000000; color: #ffffff; padding: 10px 16px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+          <h2 style="margin: 0; font-size: 16px; font-family: serif;">Parte ${sec.id}: ${escapeHtml(sec.name)}</h2>
+          <span style="font-size: 12px; font-weight: bold; background: rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 4px;">
             ${secData.score} / ${secData.total} aciertos (${secPercent}%)
           </span>
         </div>
@@ -153,125 +156,143 @@ export function generateExamReportHtml(attempt: ExamAttempt, questions: Question
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Comprobante y Examen Resuelto PIENSE II - ${escapeHtml(attempt.studentName || 'Aspirante')}</title>
+  <title>Comprobante Oficial SPA - ${escapeHtml(attempt.studentName || 'Aspirante')}</title>
   <style>
-    @media print {
-      body { margin: 0; padding: 15mm; font-size: 12pt; }
-      .no-print { display: none !important; }
-      .page-break { page-break-before: always; }
-      @page { margin: 15mm; size: letter portrait; }
+    @page { 
+      size: letter portrait; 
+      margin: 10mm; 
     }
+    @media print {
+      body { margin: 0; padding: 0; font-size: 11pt; }
+      .no-print { display: none !important; }
+      .page-break { page-break-before: always; break-before: always; }
+      .cert-frame { page-break-after: always; break-after: always; }
+    }
+    * { box-sizing: border-box; }
     body {
       font-family: 'Times New Roman', Times, serif;
-      color: #1a202c;
-      line-height: 1.5;
+      color: #111827;
+      line-height: 1.4;
       background-color: #ffffff;
       margin: 0 auto;
-      max-width: 850px;
-      padding: 30px;
+      max-width: 800px;
+      padding: 15px;
     }
     h1, h2, h3 { font-family: 'Times New Roman', Times, serif; }
     .table-scores {
       width: 100%;
       border-collapse: collapse;
-      margin: 20px 0;
+      margin: 16px 0;
       font-family: Arial, sans-serif;
-      font-size: 13px;
+      font-size: 12px;
+      page-break-inside: avoid;
+      break-inside: avoid;
     }
     .table-scores th, .table-scores td {
       border: 1px solid #cbd5e1;
-      padding: 8px 12px;
+      padding: 6px 10px;
       text-align: left;
     }
     .table-scores th {
       background-color: #000000;
       color: white;
+      font-size: 11px;
+      text-transform: uppercase;
     }
     .cert-frame {
-      border: 6px double #000000;
-      padding: 30px;
-      margin-bottom: 30px;
+      border: 5px double #000000;
+      padding: 24px;
+      margin-bottom: 24px;
       text-align: center;
       background-color: #ffffff;
       page-break-after: always;
+      break-after: always;
     }
   </style>
 </head>
 <body>
 
-  <!-- ==================== CERTIFICADO / COMPROBANTE OFICIAL ==================== -->
+  <!-- ==================== CERTIFICADO OFICIAL SPA ==================== -->
   <div class="cert-frame">
-    <div style="font-family: Arial, sans-serif; font-size: 11px; letter-spacing: 2px; color: #000000; font-weight: bold; text-transform: uppercase;">
-      Tecnológico de Monterrey
-    </div>
-    <div style="font-family: Arial, sans-serif; font-size: 10px; letter-spacing: 1px; color: #475569; text-transform: uppercase; margin-top: 2px;">
-      ${escapeHtml(orgName)} • ${escapeHtml(examTitle)}
+    <!-- Graduation Cap Logo SVG -->
+    <div style="margin-bottom: 8px;">
+      <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#000000" stroke-width="1.8" style="margin: 0 auto; display: block;">
+        <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+        <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+      </svg>
     </div>
 
-    <h1 style="font-size: 26px; color: #000000; text-transform: uppercase; margin: 20px 0 10px; font-weight: bold;">
-      ${isPassing ? 'Reconocimiento de Admisión y Alto Desempeño' : 'Comprobante Oficial de Evaluación'}
+    <div style="font-family: Arial, sans-serif; font-size: 11px; letter-spacing: 2px; color: #000000; font-weight: bold; text-transform: uppercase;">
+      SPA • SIMULACROS DE PRUEBAS ACADÉMICAS
+    </div>
+    <div style="font-family: Arial, sans-serif; font-size: 10px; letter-spacing: 1px; color: #475569; text-transform: uppercase; margin-top: 3px;">
+      Escuela Patrocinadora: ${escapeHtml(orgName)} • Versión Oficial
+    </div>
+
+    <h1 style="font-size: 22px; color: #000000; text-transform: uppercase; margin: 16px 0 8px; font-weight: bold;">
+      ${isPassing ? 'Reconocimiento de Alto Desempeño Académico' : 'Comprobante Oficial de Evaluación Estandarizada'}
     </h1>
 
-    <div style="font-style: italic; font-size: 14px; color: #475569; margin-bottom: 15px;">
-      El Tecnológico de Monterrey y ${escapeHtml(orgName)} hacen constar que el aspirante:
+    <div style="font-style: italic; font-size: 13px; color: #475569; margin-bottom: 12px;">
+      SPA y la Escuela Patrocinadora (${escapeHtml(orgName)}) hacen constar que:
     </div>
 
-    <div style="font-size: 28px; font-weight: bold; color: #000000; border-bottom: 2px solid #000000; display: inline-block; padding: 0 30px 6px; margin-bottom: 20px;">
+    <div style="font-size: 24px; font-weight: bold; color: #000000; border-bottom: 2px solid #000000; display: inline-block; padding: 0 24px 4px; margin-bottom: 14px;">
       ${escapeHtml(attempt.studentName || 'Aspirante Evaluado')}
     </div>
 
-    <div style="font-size: 14px; color: #334155; max-width: 600px; margin: 0 auto 24px; line-height: 1.6;">
+    <div style="font-size: 13px; color: #334155; max-width: 580px; margin: 0 auto 18px; line-height: 1.5;">
       ${
         isPassing
-          ? `Ha acreditado satisfactoriamente la <strong>${escapeHtml(examTitle)}</strong> demostrando competencias analíticas, verbales y matemáticas requeridas para el perfil de talento.`
-          : `Ha concluido formalmente la aplicación de la <strong>${escapeHtml(examTitle)}</strong>, registrándose la totalidad de sus respuestas para fines de diagnóstico y reclutamiento.`
+          ? `Ha presentado y acreditado satisfactoriamente la prueba oficial <strong>${escapeHtml(examTitle)}</strong> demostrando competencias analíticas, verbales y de razonamiento requeridas.`
+          : `Ha concluido la aplicación oficial de la prueba <strong>${escapeHtml(examTitle)}</strong>, quedando registradas la totalidad de sus respuestas para fines de diagnóstico académico y retroalimentación.`
       }
     </div>
 
     <!-- Scaled Summary Box -->
-    <div style="display: flex; justify-content: center; gap: 20px; margin: 20px 0; font-family: Arial, sans-serif;">
-      <div style="border: 2px solid #000000; padding: 12px 24px; background: white; text-align: center;">
-        <div style="font-size: 11px; color: #475569; text-transform: uppercase; font-weight: bold;">Aciertos Totales</div>
-        <div style="font-size: 22px; font-weight: bold; color: #000000;">${score} / ${total}</div>
-        <div style="font-size: 11px; color: #000000; font-weight: bold;">${percentage}%</div>
+    <div style="display: flex; justify-content: center; gap: 14px; margin: 16px 0; font-family: Arial, sans-serif;">
+      <div style="border: 2px solid #000000; padding: 10px 18px; background: white; text-align: center;">
+        <div style="font-size: 10px; color: #475569; text-transform: uppercase; font-weight: bold;">Aciertos Totales</div>
+        <div style="font-size: 18px; font-weight: bold; color: #000000;">${score} / ${total}</div>
+        <div style="font-size: 10px; color: #000000; font-weight: bold;">${percentage}%</div>
       </div>
-      <div style="border: 2px solid #000000; padding: 12px 24px; background: white; text-align: center;">
-        <div style="font-size: 11px; color: #475569; text-transform: uppercase; font-weight: bold;">Escala ${isPaa ? 'PAA' : 'PIENSE II'}</div>
-        <div style="font-size: 22px; font-weight: bold; color: #000000;">${estimatedScale} pts</div>
-        <div style="font-size: 11px; color: #475569;">(Rango: ${isPaa ? '800 - 1600' : '200 - 800'})</div>
+      <div style="border: 2px solid #000000; padding: 10px 18px; background: white; text-align: center;">
+        <div style="font-size: 10px; color: #475569; text-transform: uppercase; font-weight: bold;">Escala Oficial</div>
+        <div style="font-size: 18px; font-weight: bold; color: #000000;">${estimatedScale} pts</div>
+        <div style="font-size: 10px; color: #475569;">(Rango: ${isPaa ? '800 - 1600' : '200 - 800'})</div>
       </div>
-      <div style="border: 2px solid #000000; padding: 12px 24px; background: white; text-align: center;">
-        <div style="font-size: 11px; color: #475569; text-transform: uppercase; font-weight: bold;">Estatus</div>
-        <div style="font-size: 20px; font-weight: bold; color: #000000; margin-top: 2px;">
-          ${isPassing ? 'ACREDITADO' : 'EN PROCESO'}
+      <div style="border: 2px solid #000000; padding: 10px 18px; background: white; text-align: center;">
+        <div style="font-size: 10px; color: #475569; text-transform: uppercase; font-weight: bold;">Estatus</div>
+        <div style="font-size: 16px; font-weight: bold; color: #000000; margin-top: 2px;">
+          ${isPassing ? 'ACREDITADO' : 'EN REPASO'}
         </div>
       </div>
     </div>
 
     <!-- Signatures and Seal -->
-    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 36px; padding-top: 20px; font-family: Arial, sans-serif; font-size: 12px;">
-      <div style="text-align: center; width: 30%;">
-        <div style="border-top: 1px solid #000000; padding-top: 6px; font-weight: bold; color: #000000;">Comité de Talento y Selección</div>
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 28px; padding-top: 14px; font-family: Arial, sans-serif; font-size: 11px;">
+      <div style="text-align: center; width: 32%;">
+        <div style="border-top: 1px solid #000000; padding-top: 4px; font-weight: bold; color: #000000;">Dirección de la Escuela Patrocinadora</div>
         <div style="font-size: 10px; color: #475569;">${escapeHtml(orgName)}</div>
       </div>
 
       <div style="text-align: center; width: 30%;">
-        <div style="display: inline-block; border: 3px double #000000; padding: 8px 14px; border-radius: 50%; color: #000000; font-weight: bold; font-size: 11px;">
-          ★ SELLO OFICIAL ★<br><span style="font-size: 9px;">ACREDITADO</span>
+        <div style="display: inline-block; border: 3px double #000000; padding: 6px 12px; border-radius: 50%; color: #000000; font-weight: bold; font-size: 10px;">
+          ★ SELLO OFICIAL ★<br><span style="font-size: 8px;">SPA OFICIAL</span>
         </div>
-        <div style="font-size: 10px; color: #475569; margin-top: 4px; font-family: monospace;">Folio: ${folio}</div>
+        <div style="font-size: 9px; color: #475569; margin-top: 3px; font-family: monospace;">Folio: ${folio}</div>
       </div>
 
-      <div style="text-align: center; width: 30%;">
-        <div style="border-top: 1px solid #000000; padding-top: 6px; font-weight: bold; color: #000000;">${dateStr}</div>
+      <div style="text-align: center; width: 32%;">
+        <div style="border-top: 1px solid #000000; padding-top: 4px; font-weight: bold; color: #000000;">${dateStr}</div>
         <div style="font-size: 10px; color: #475569;">Fecha de Emisión</div>
       </div>
     </div>
   </div>
 
   <!-- ==================== DESGLOSE DE RESULTADOS ==================== -->
-  <div style="margin-bottom: 30px; font-family: Arial, sans-serif;">
-    <h2 style="font-size: 20px; color: #000000; border-bottom: 2px solid #000000; padding-bottom: 6px; font-family: serif;">
+  <div style="margin-bottom: 24px; font-family: Arial, sans-serif;">
+    <h2 style="font-size: 18px; color: #000000; border-bottom: 2px solid #000000; padding-bottom: 4px; font-family: serif;">
       Desglose Oficial de Desempeño por Secciones
     </h2>
     <table class="table-scores">
@@ -301,18 +322,18 @@ export function generateExamReportHtml(attempt: ExamAttempt, questions: Question
         }).join('')}
       </tbody>
     </table>
-    <div style="font-size: 12px; color: #64748b; margin-top: -10px; margin-bottom: 20px;">
-      * Tiempo total empleado: <strong>${timeStr}</strong> • Aspirante: <strong>${escapeHtml(attempt.studentName || 'Aspirante')}</strong>
+    <div style="font-size: 11px; color: #64748b; margin-top: -6px; margin-bottom: 16px;">
+      * Tiempo total empleado: <strong>${timeStr}</strong> • Aspirante: <strong>${escapeHtml(attempt.studentName || 'Aspirante')}</strong> • Escuela Patrocinadora: <strong>${escapeHtml(orgName)}</strong>
     </div>
   </div>
 
   <!-- ==================== EXAMEN RESUELTO COMPLETO ==================== -->
   <div style="font-family: Arial, sans-serif;">
-    <h2 style="font-size: 20px; color: #002B49; border-bottom: 2px solid #002B49; padding-bottom: 6px; font-family: serif;">
+    <h2 style="font-size: 18px; color: #000000; border-bottom: 2px solid #000000; padding-bottom: 4px; font-family: serif;">
       Examen Resuelto y Justificación Académica
     </h2>
-    <p style="font-size: 13px; color: #475569; margin-bottom: 20px;">
-      A continuación se detalla cada uno de los 154 reactivos con la respuesta elegida por el aspirante, la clave correcta oficial y la justificación correspondiente.
+    <p style="font-size: 12px; color: #475569; margin-bottom: 16px;">
+      A continuación se detallan los reactivos con la respuesta seleccionada por el aspirante, la clave correcta oficial y la justificación correspondiente.
     </p>
     ${sectionsHtml}
   </div>

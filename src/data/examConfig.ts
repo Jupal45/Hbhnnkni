@@ -29,7 +29,7 @@ export const PIENSE2_PART_DURATIONS: Record<number, number> = {
   4: 30 * 60, // 30 min
 };
 
-export const EXAM_DEFINITIONS: Record<ExamType, ExamDefinition> = {
+export const EXAM_DEFINITIONS: Record<'piense2' | 'paa', ExamDefinition> = {
   piense2: {
     id: 'piense2',
     title: 'PIENSE II - Prueba de Ingreso y Evaluación en la Educación Secundaria / Media Superior',
@@ -60,7 +60,10 @@ export const EXAM_DEFINITIONS: Record<ExamType, ExamDefinition> = {
   },
 };
 
+export const DEFAULT_SPONSORING_ORG = 'Ninguna';
+
 export const INSTITUTIONS_LIST = [
+  'Ninguna',
   'Instituto Mater',
   'PrepaTec',
   'Tecnológico de Monterrey',

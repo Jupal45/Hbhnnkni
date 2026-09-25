@@ -54,10 +54,10 @@ export const ExamDownloadPanel: React.FC<ExamDownloadPanelProps> = ({
 
   if (variant === 'compact') {
     return (
-      <div className={`flex flex-wrap items-center gap-2 bg-white ${className}`}>
+      <div className={`flex flex-wrap items-center gap-2 ${className}`}>
         <button
           onClick={() => downloadOrPrintPdf(attempt, questions)}
-          className="flex items-center gap-1.5 bg-white hover:bg-black hover:text-white text-black text-xs font-bold px-3 py-1.5 border-2 border-black transition cursor-pointer uppercase"
+          className="flex items-center gap-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white/70 dark:bg-slate-800/70 text-xs font-bold px-3 py-1.5 transition cursor-pointer uppercase btn-dynamic"
           title="Descargar PDF"
         >
           <span>PDF</span>
@@ -65,7 +65,7 @@ export const ExamDownloadPanel: React.FC<ExamDownloadPanelProps> = ({
 
         <button
           onClick={() => downloadExamAsWord(attempt, questions)}
-          className="flex items-center gap-1.5 bg-white hover:bg-black hover:text-white text-black text-xs font-bold px-3 py-1.5 border-2 border-black transition cursor-pointer uppercase"
+          className="flex items-center gap-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white/70 dark:bg-slate-800/70 text-xs font-bold px-3 py-1.5 transition cursor-pointer uppercase btn-dynamic"
           title="Descargar Word"
         >
           <span>Word</span>
@@ -73,7 +73,7 @@ export const ExamDownloadPanel: React.FC<ExamDownloadPanelProps> = ({
 
         <button
           onClick={() => downloadExamForGoogleDocs(attempt, questions)}
-          className="flex items-center gap-1.5 bg-white hover:bg-black hover:text-white text-black text-xs font-bold px-3 py-1.5 border-2 border-black transition cursor-pointer uppercase"
+          className="flex items-center gap-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white/70 dark:bg-slate-800/70 text-xs font-bold px-3 py-1.5 transition cursor-pointer uppercase btn-dynamic"
           title="Descargar Docs"
         >
           <span>Docs</span>
@@ -83,29 +83,29 @@ export const ExamDownloadPanel: React.FC<ExamDownloadPanelProps> = ({
   }
 
   return (
-    <div className={`bg-white border-2 border-black p-5 sm:p-6 font-sans text-black ${className}`}>
+    <div className={`glass-panel rounded-3xl border border-slate-300/80 dark:border-slate-700/80 p-5 sm:p-6 font-sans shadow-xl ${className}`}>
       {/* Header Info Box */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b-2 border-black gap-2 bg-white">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-300/70 dark:border-slate-700/70 gap-2">
         <div>
-          <span className="text-[10px] uppercase font-bold tracking-widest text-black bg-white border border-black px-2 py-0.5 font-mono">
+          <span className="text-[10px] uppercase font-bold tracking-widest px-2.5 py-0.5 rounded-lg border border-slate-300 dark:border-slate-700 font-mono bg-white/60 dark:bg-slate-800/60 opacity-80">
             Comprobante Oficial
           </span>
-          <h3 className="text-lg sm:text-xl font-bold font-serif text-black mt-1">
+          <h3 className="text-lg sm:text-xl font-bold font-serif mt-1">
             Descargar Examen Resuelto y Certificado
           </h3>
         </div>
       </div>
 
-      {/* Format Selection - STRICTLY ONLY PDF, Word, Docs without details */}
+      {/* Format Selection with Rounded Corners & Medium Gray Borders */}
       <div className="grid grid-cols-3 gap-3 my-4">
         {/* PDF Option */}
         <button
           type="button"
           onClick={() => setSelectedFormat('pdf')}
-          className={`py-3 px-2 border-2 text-center text-sm font-bold uppercase transition cursor-pointer font-sans ${
+          className={`py-3 px-2 rounded-2xl border text-center text-xs sm:text-sm font-bold uppercase transition cursor-pointer font-sans btn-dynamic ${
             selectedFormat === 'pdf'
-              ? 'border-4 border-black bg-white text-black font-extrabold ring-1 ring-black'
-              : 'border-2 border-black bg-white text-black hover:bg-slate-50'
+              ? 'border-indigo-600 dark:border-sky-400 bg-indigo-50/60 dark:bg-sky-950/40 text-indigo-700 dark:text-sky-300 shadow-sm'
+              : 'border-slate-300/80 dark:border-slate-700/80 bg-white/50 dark:bg-slate-800/40 hover:bg-white/80'
           }`}
         >
           {selectedFormat === 'pdf' ? '✓ PDF' : 'PDF'}
@@ -115,10 +115,10 @@ export const ExamDownloadPanel: React.FC<ExamDownloadPanelProps> = ({
         <button
           type="button"
           onClick={() => setSelectedFormat('word')}
-          className={`py-3 px-2 border-2 text-center text-sm font-bold uppercase transition cursor-pointer font-sans ${
+          className={`py-3 px-2 rounded-2xl border text-center text-xs sm:text-sm font-bold uppercase transition cursor-pointer font-sans btn-dynamic ${
             selectedFormat === 'word'
-              ? 'border-4 border-black bg-white text-black font-extrabold ring-1 ring-black'
-              : 'border-2 border-black bg-white text-black hover:bg-slate-50'
+              ? 'border-indigo-600 dark:border-sky-400 bg-indigo-50/60 dark:bg-sky-950/40 text-indigo-700 dark:text-sky-300 shadow-sm'
+              : 'border-slate-300/80 dark:border-slate-700/80 bg-white/50 dark:bg-slate-800/40 hover:bg-white/80'
           }`}
         >
           {selectedFormat === 'word' ? '✓ Word' : 'Word'}
@@ -128,60 +128,56 @@ export const ExamDownloadPanel: React.FC<ExamDownloadPanelProps> = ({
         <button
           type="button"
           onClick={() => setSelectedFormat('docs')}
-          className={`py-3 px-2 border-2 text-center text-sm font-bold uppercase transition cursor-pointer font-sans ${
+          className={`py-3 px-2 rounded-2xl border text-center text-xs sm:text-sm font-bold uppercase transition cursor-pointer font-sans btn-dynamic ${
             selectedFormat === 'docs'
-              ? 'border-4 border-black bg-white text-black font-extrabold ring-1 ring-black'
-              : 'border-2 border-black bg-white text-black hover:bg-slate-50'
+              ? 'border-indigo-600 dark:border-sky-400 bg-indigo-50/60 dark:bg-sky-950/40 text-indigo-700 dark:text-sky-300 shadow-sm'
+              : 'border-slate-300/80 dark:border-slate-700/80 bg-white/50 dark:bg-slate-800/40 hover:bg-white/80'
           }`}
         >
           {selectedFormat === 'docs' ? '✓ Docs' : 'Docs'}
         </button>
       </div>
 
-      {/* Action Buttons & Feedback - 100% White Background */}
-      <div className="bg-white border-2 border-black p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="text-xs text-black font-mono">
-          Formato: <strong className="uppercase">{selectedFormat}</strong>
-        </div>
+      {/* Main Download Button */}
+      <div className="space-y-3">
+        <button
+          type="button"
+          onClick={handleDownload}
+          className="w-full rounded-2xl bg-gradient-to-r from-slate-900 to-indigo-950 dark:from-sky-500 dark:to-indigo-600 text-white font-extrabold py-3.5 px-4 shadow-lg transition flex items-center justify-center gap-2 text-xs uppercase tracking-wider cursor-pointer btn-dynamic btn-glow-primary"
+        >
+          <Download className="w-4 h-4 stroke-[2.5]" />
+          <span>
+            {selectedFormat === 'pdf'
+              ? 'Imprimir / Guardar como PDF'
+              : selectedFormat === 'word'
+              ? 'Descargar Archivo para Word (.doc)'
+              : 'Descargar para Google Docs'}
+          </span>
+        </button>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {selectedFormat === 'docs' && (
-            <button
-              onClick={handleCopyForDocs}
-              className="bg-white hover:bg-black hover:text-white text-black border-2 border-black text-xs font-bold px-3 py-2 flex items-center gap-1.5 transition cursor-pointer font-sans uppercase"
-            >
-              {copySuccess ? (
-                <>
-                  <Check className="w-3.5 h-3.5" />
-                  <span>Copiado</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-3.5 h-3.5" />
-                  <span>Copiar para Docs</span>
-                </>
-              )}
-            </button>
+        {/* Copy to clipboard for Google Docs */}
+        <button
+          type="button"
+          onClick={handleCopyForDocs}
+          className="w-full rounded-2xl border border-slate-300 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 py-2.5 px-3 text-xs font-semibold cursor-pointer transition flex items-center justify-center gap-1.5 btn-dynamic"
+        >
+          {copySuccess ? (
+            <>
+              <Check className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="text-emerald-600 dark:text-emerald-400">¡Copiado! Abre un Google Doc y presiona Ctrl+V</span>
+            </>
+          ) : (
+            <>
+              <Copy className="w-3.5 h-3.5 opacity-70" />
+              <span>Copiar formato para pegar en Google Docs (Ctrl+V)</span>
+            </>
           )}
-
-          <button
-            onClick={handleDownload}
-            className="bg-white hover:bg-black hover:text-white text-black text-xs font-bold px-4 py-2 border-2 border-black flex items-center gap-2 transition cursor-pointer font-sans uppercase"
-          >
-            {selectedFormat === 'pdf' ? (
-              <Printer className="w-3.5 h-3.5" />
-            ) : (
-              <Download className="w-3.5 h-3.5" />
-            )}
-            <span>Descargar</span>
-          </button>
-        </div>
+        </button>
       </div>
 
       {downloadSuccess && (
-        <div className="mt-3 p-2.5 bg-white border-2 border-black text-black text-xs flex items-center gap-2 font-mono">
-          <Check className="w-4 h-4 shrink-0" />
-          <span>{downloadSuccess}</span>
+        <div className="mt-3 p-2.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-xs font-semibold text-center">
+          {downloadSuccess}
         </div>
       )}
     </div>
